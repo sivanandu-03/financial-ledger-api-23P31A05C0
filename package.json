@@ -1,0 +1,27 @@
+{
+  "name": "financial-ledger-api-23p31a05c0",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sivanandu-03/financial-ledger-api-23P31A05C0.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sivanandu-03/financial-ledger-api-23P31A05C0/issues"
+  },
+  "homepage": "https://github.com/sivanandu-03/financial-ledger-api-23P31A05C0#readme",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "pg": "^8.16.3",
+    "uuid": "^13.0.0"
+  }
+}
