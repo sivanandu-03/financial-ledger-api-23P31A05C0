@@ -2,18 +2,23 @@
 CREATE TABLE accounts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID NOT NULL,
-    account_type    VARCHAR(20) NOT NULL CHECK (account_type IN ('checking', 'savings')),
+    account_type    VARCHAR(20) NOT NULL CHECK (account_type IN ('checking', 'savings', 'system')),
     currency        CHAR(3) NOT NULL,
     status          VARCHAR(20) NOT NULL CHECK (status IN ('active', 'frozen', 'closed')),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Optional: "system" or "bank" account for deposits/withdrawals
--- Create a special row and remember its id in config or env.
--- Example (you can insert manually after migration):
--- INSERT INTO accounts (id, user_id, account_type, currency, status)
--- VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000',
---         'checking', 'INR', 'active');
+-- Automatically create SYSTEM (BANK) account for deposits & withdrawals
+INSERT INTO accounts (id, user_id, account_type, currency, status)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000000',
+    'system',
+    'INR',
+    'active'
+)
+ON CONFLICT DO NOTHING;
+
 
 -- 2. transactions
 CREATE TABLE transactions (
@@ -38,9 +43,7 @@ CREATE TABLE ledger_entries (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Do NOT allow UPDATE/DELETE on ledger_entries (immutability)
--- Easiest: no UPDATE/DELETE in code. Stronger: DB triggers:
-
+-- Prevent update/delete on ledger_entries
 CREATE OR REPLACE FUNCTION prevent_ledger_mutation()
 RETURNS trigger AS $$
 BEGIN

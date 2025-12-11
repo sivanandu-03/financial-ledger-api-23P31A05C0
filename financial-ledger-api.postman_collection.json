@@ -1,0 +1,140 @@
+{
+  "info": {
+    "name": "Financial Ledger API",
+    "_postman_id": "58e8c5c4-1fae-4b38-9d93-e64c04e9aabc",
+    "description": "Postman collection for testing the Financial Ledger API (Double-entry bookkeeping, ACID transactions, ledger immutability).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Create Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"accountType\": \"checking\",\n    \"currency\": \"INR\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/accounts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["accounts"]
+            }
+          }
+        },
+        {
+          "name": "Get Account Details",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/accounts/{{accountId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["accounts", "{{accountId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Account Ledger",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/accounts/{{accountId}}/ledger",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["accounts", "{{accountId}}", "ledger"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"accountId\": \"{{accountId}}\",\n    \"amount\": 1000,\n    \"currency\": \"INR\",\n    \"description\": \"Initial deposit\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/deposits",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["deposits"]
+            }
+          }
+        },
+        {
+          "name": "Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"accountId\": \"{{accountId}}\",\n    \"amount\": 100,\n    \"currency\": \"INR\",\n    \"description\": \"ATM withdrawal\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/withdrawals",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["withdrawals"]
+            }
+          }
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sourceAccountId\": \"{{sourceAccountId}}\",\n    \"destinationAccountId\": \"{{destAccountId}}\",\n    \"amount\": 500,\n    \"currency\": \"INR\",\n    \"description\": \"Test transfer\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/transfers",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["transfers"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "accountId",
+      "value": ""
+    },
+    {
+      "key": "sourceAccountId",
+      "value": ""
+    },
+    {
+      "key": "destAccountId",
+      "value": ""
+    }
+  ]
+}

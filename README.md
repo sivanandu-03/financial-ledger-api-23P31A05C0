@@ -1,60 +1,74 @@
-Financial Ledger API — Double Entry Bookkeeping (Node.js + PostgreSQL)
+# Financial Ledger API — Double Entry Bookkeeping (Node.js + PostgreSQL + Docker)
 
-This project implements a fully ACID-compliant Financial Ledger API using double-entry bookkeeping, immutable ledger entries, and real-time balance calculation using ledger sums.
-It is designed for banking-style accuracy, data integrity, and auditability.
-
-🚀 Features
+This project implements a fully ACID-compliant Financial Ledger System using
 ✔ Double-entry bookkeeping
+✔ Immutable ledger
+✔ Transaction-level consistency
+✔ Real-time balance calculation
 
-Every financial operation creates two ledger entries:
+It follows banking-style accounting principles and ensures data integrity even under concurrency.
+
+## 🚀 Features
+✔ Double-Entry Bookkeeping
+
+Every financial action creates two ledger entries:
 
 Debit from one account
 
 Credit to another
 
+This guarantees balanced books.
+
 ✔ ACID Transactions
 
-Transfers, deposits, and withdrawals run inside:
-BEGIN → VALIDATION → LEDGER ENTRIES → STATUS UPDATE → COMMIT
-If anything fails → ROLLBACK.
+Deposits, withdrawals, and transfers run inside a single SQL transaction:
+
+BEGIN → VALIDATE → INSERT LEDGER ENTRIES → COMMIT
+
+
+If any step fails:
+
+ROLLBACK
 
 ✔ Immutable Ledger
 
-Ledger entries cannot be updated or deleted.
+Ledger entries cannot be edited or deleted.
 A PostgreSQL trigger enforces immutability.
 
-✔ Balance is NOT stored
+✔ Real-Time Balance Calculation
 
-Balance is calculated dynamically:
+Balance is not stored in the accounts table.
+Instead:
 
-SUM(credits) - SUM(debits)
+Balance = SUM(credits) – SUM(debits)
 
 
-This ensures a completely auditable and tamper-proof system.
+This ensures full auditability.
 
-✔ Prevent overdrafts
+✔ Prevent Negative Balances
 
-System checks balance inside the database transaction using row-level locking.
-Negative balances are never allowed.
+Withdrawals & transfers use:
 
-✔ Clean architecture
+Row-level locking (FOR UPDATE)
 
-routes/ → API endpoints
+Balance checks inside the transaction
 
-services/ → business logic
+Negative balances are impossible.
 
-db.js → PostgreSQL connection
+✔ Clean Architecture
+routes/     → HTTP API endpoints
+services/   → Business logic & transactions
+schema.sql  → Database schema + triggers
+db.js       → PostgreSQL connection pool
 
-schema.sql → database schema
-
-🏗️ Tech Stack
+## 🏗️ Tech Stack
 Component	Technology
-Backend	Node.js, Express.js
-Database	PostgreSQL (NUMERIC for money)
-Auth	(Not included, optional extension)
-Deployment	Any Node host (Render, Railway, AWS, etc.)
-
-📦 Project Structure
+Backend	Node.js + Express
+Database	PostgreSQL
+Containerization	Docker + Docker Compose
+API Testing	Postman
+Transactions	SERIALIZABLE isolation (recommended)
+## 📂 Project Structure
 financial-ledger-api/
   src/
     app.js
@@ -66,123 +80,124 @@ financial-ledger-api/
       accountService.js
       transactionService.js
   schema.sql
-  server.js
-  .env        (ignored by git)
-  .gitignore
+  Dockerfile
+  docker-compose.yml
+  .env.example
   package.json
+  server.js
+  README.md
 
-⚙️ Setup Instructions
-1️⃣ Install Dependencies
-npm install
+# ⚙️ Running the Project (Docker Recommended)
 
-2️⃣ Setup PostgreSQL Database
+Your evaluator can run the entire application using one command — no Node.js or PostgreSQL required.
 
-Create DB:
+## ✅ 1. Clone the Repository
+git clone https://github.com/<username>/financial-ledger-api.git
+cd financial-ledger-api
 
-CREATE DATABASE ledger_db;
-
-
-Enable UUID:
-
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+## ✅ 2. Create .env from template
+cp .env.example .env
 
 
-Run the schema:
+Content (example):
 
--- Import schema.sql into your database
-
-
-Create system account (used for deposits/withdrawals):
-
-INSERT INTO accounts (id, user_id, account_type, currency, status)
-VALUES ('00000000-0000-0000-0000-000000000001',
-        '00000000-0000-0000-0000-000000000000',
-        'checking', 'INR', 'active');
-
-3️⃣ Configure Environment Variables
-
-Create a .env file (Git will ignore it automatically):
-
-DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/ledger_db
-SYSTEM_ACCOUNT_ID=00000000-0000-0000-0000-000000000001
+DATABASE_URL=postgres://postgres:postgres@db:5432/ledger_db
 PORT=3000
 
-4️⃣ Start the Server
+## ✅ 3. Start Services (API + PostgreSQL)
+docker-compose up --build
+
+
+If successful, you will see:
+
+ledger-db  | PostgreSQL init process complete
+ledger-api | Server listening on port 3000
+
+
+The API now runs at:
+
+👉 http://localhost:3000
+
+# ⚙️ Running Without Docker (Manual Setup)
+
+(Not required but included for completeness.)
+
+1️⃣ Install dependencies
+npm install
+
+2️⃣ Create PostgreSQL DB
+CREATE DATABASE ledger_db;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+3️⃣ Load schema
+
+Import schema.sql.
+
+4️⃣ Start server
 node server.js
 
+# 🧪 API Testing Guide (Using Postman)
 
-Server output:
+Import the provided file:
 
-Server running on port 3000
+financial-ledger-api.postman_collection.json
 
-🧪 API Testing Guide
 
-This is the exact order recommended:
+Then test endpoints.
 
-✔ 1. Create Account
+## ✔ 1. Create Account
+
 POST /accounts
+
 {
-  "userId": "UUID",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
   "accountType": "checking",
   "currency": "INR"
 }
 
+## ✔ 2. Deposit
 
-You get:
-
-"id": "<ACCOUNT_ID>"
-
-
-Save this ID for deposits / transfers.
-
-✔ 2. Deposit Money
 POST /deposits
+
 {
   "accountId": "<ACCOUNT_ID>",
   "amount": 1000,
-  "currency": "INR"
+  "currency": "INR",
+  "description": "Initial deposit"
 }
 
+## ✔ 3. Withdrawal
 
-Creates:
+POST /withdrawals
 
-system account → debit 1000
+{
+  "accountId": "<ACCOUNT_ID>",
+  "amount": 200,
+  "currency": "INR",
+  "description": "ATM withdrawal"
+}
 
-your account → credit 1000
+## ✔ 4. Transfer
 
-✔ 3. Transfer Between Accounts
 POST /transfers
+
 {
   "sourceAccountId": "A_ID",
   "destinationAccountId": "B_ID",
-  "amount": 400,
-  "currency": "INR"
+  "amount": 300,
+  "currency": "INR",
+  "description": "Bill payment"
 }
 
+## ✔ 5. Get Account Balance
 
-Ledger entries:
+GET /accounts/<ACCOUNT_ID>
 
-Account	Entry	Amount
-A	debit	400
-B	credit	400
-✔ 4. Withdrawal
-POST /withdrawals
-{
-  "accountId": "A_ID",
-  "amount": 100,
-  "currency": "INR"
-}
+## ✔ 6. Get Ledger
 
-✔ 5. Get Account Balance
-GET /accounts/A_ID
+GET /accounts/<ACCOUNT_ID>/ledger
 
-
-Balance is computed from ledger.
-
-✔ 6. Get Account Ledger History
-GET /accounts/A_ID/ledger
-
-🔒 Ledger Immutability Test
+# 🛡️ Ledger Immutability Test
 
 Try:
 
@@ -192,6 +207,3 @@ UPDATE ledger_entries SET amount = 999 WHERE amount = 1000;
 Expected:
 
 ERROR: Ledger entries are immutable
-
-
-Trigger is working.
