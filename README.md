@@ -1,74 +1,78 @@
-# Financial Ledger API — Double Entry Bookkeeping (Node.js + PostgreSQL + Docker)
+Financial Ledger API — Double Entry Bookkeeping (Node.js + PostgreSQL + Docker)
 
-This project implements a fully ACID-compliant Financial Ledger System using
+This project implements a fully ACID-compliant financial ledger system using:
+
 ✔ Double-entry bookkeeping
-✔ Immutable ledger
-✔ Transaction-level consistency
+✔ Immutable ledger entries
+✔ SQL transactions for atomicity
 ✔ Real-time balance calculation
+✔ PostgreSQL row-level locking
+✔ Docker-based deployment
 
-It follows banking-style accounting principles and ensures data integrity even under concurrency.
+This system is designed to mimic real-world banking ledger behavior.
 
-## 🚀 Features
+🚀 Features
 ✔ Double-Entry Bookkeeping
 
-Every financial action creates two ledger entries:
+Every financial event generates two ledger entries:
 
 Debit from one account
 
-Credit to another
+Credit to another account
 
-This guarantees balanced books.
+This guarantees the books always balance.
 
 ✔ ACID Transactions
 
-Deposits, withdrawals, and transfers run inside a single SQL transaction:
+Each operation runs inside a single SQL transaction:
 
-BEGIN → VALIDATE → INSERT LEDGER ENTRIES → COMMIT
+BEGIN
+  validate inputs
+  lock accounts
+  insert ledger entries
+  update transaction status
+COMMIT
 
 
-If any step fails:
-
-ROLLBACK
+If any step fails → ROLLBACK.
 
 ✔ Immutable Ledger
 
-Ledger entries cannot be edited or deleted.
-A PostgreSQL trigger enforces immutability.
+Ledger entries cannot be changed or deleted.
+A PostgreSQL trigger enforces immutability:
+
+BEFORE UPDATE OR DELETE → RAISE EXCEPTION
 
 ✔ Real-Time Balance Calculation
 
-Balance is not stored in the accounts table.
-Instead:
+Balance is never stored. It is computed as:
 
-Balance = SUM(credits) – SUM(debits)
+SUM(credits) – SUM(debits)
 
 
-This ensures full auditability.
+This guarantees full auditability.
 
 ✔ Prevent Negative Balances
 
-Withdrawals & transfers use:
+Before a withdrawal or transfer:
 
-Row-level locking (FOR UPDATE)
+The account row is locked (SELECT ... FOR UPDATE)
 
-Balance checks inside the transaction
+The available balance is checked
 
-Negative balances are impossible.
+If insufficient → transaction fails safely
 
-✔ Clean Architecture
-routes/     → HTTP API endpoints
-services/   → Business logic & transactions
-schema.sql  → Database schema + triggers
-db.js       → PostgreSQL connection pool
+No double spending or race conditions
 
-## 🏗️ Tech Stack
+🏗️ Tech Stack
 Component	Technology
 Backend	Node.js + Express
 Database	PostgreSQL
+Isolation Level	SERIALIZABLE (recommended)
 Containerization	Docker + Docker Compose
-API Testing	Postman
-Transactions	SERIALIZABLE isolation (recommended)
-## 📂 Project Structure
+Testing	Postman
+UUID	pgcrypto extension
+📂 Project Structure
 financial-ledger-api/
   src/
     app.js
@@ -83,69 +87,67 @@ financial-ledger-api/
   Dockerfile
   docker-compose.yml
   .env.example
-  package.json
   server.js
+  package.json
+  financial-ledger-api.postman_collection.json
   README.md
 
-# ⚙️ Running the Project (Docker Recommended)
-
-Your evaluator can run the entire application using one command — no Node.js or PostgreSQL required.
-
-## ✅ 1. Clone the Repository
+⚙️ Running the Project (Docker Recommended)
+✅ 1. Clone the repository
 git clone https://github.com/<username>/financial-ledger-api.git
 cd financial-ledger-api
 
-## ✅ 2. Create .env from template
+✅ 2. Create .env
 cp .env.example .env
 
 
-Content (example):
+Example content:
 
 DATABASE_URL=postgres://postgres:postgres@db:5432/ledger_db
+SYSTEM_ACCOUNT_ID=00000000-0000-0000-0000-000000000001
 PORT=3000
 
-## ✅ 3. Start Services (API + PostgreSQL)
+✅ 3. Start the system (API + PostgreSQL)
 docker-compose up --build
 
 
-If successful, you will see:
+Expected output:
 
 ledger-db  | PostgreSQL init process complete
 ledger-api | Server listening on port 3000
 
 
-The API now runs at:
+API available at:
 
 👉 http://localhost:3000
 
-# ⚙️ Running Without Docker (Manual Setup)
+⚙️ Running Without Docker (Optional)
 
-(Not required but included for completeness.)
+Install dependencies
 
-1️⃣ Install dependencies
 npm install
 
-2️⃣ Create PostgreSQL DB
+
+Create PostgreSQL database
+
 CREATE DATABASE ledger_db;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-3️⃣ Load schema
 
-Import schema.sql.
+Apply schema
+Load schema.sql
 
-4️⃣ Start server
+Start server
+
 node server.js
 
-# 🧪 API Testing Guide (Using Postman)
+🧪 API Testing (Using Postman)
 
-Import the provided file:
+Import the provided collection:
 
 financial-ledger-api.postman_collection.json
 
-
-Then test endpoints.
-
-## ✔ 1. Create Account
+✔ 1. Create Account
 
 POST /accounts
 
@@ -155,7 +157,7 @@ POST /accounts
   "currency": "INR"
 }
 
-## ✔ 2. Deposit
+✔ 2. Deposit
 
 POST /deposits
 
@@ -166,44 +168,114 @@ POST /deposits
   "description": "Initial deposit"
 }
 
-## ✔ 3. Withdrawal
+✔ 3. Withdrawal
 
 POST /withdrawals
 
-{
-  "accountId": "<ACCOUNT_ID>",
-  "amount": 200,
-  "currency": "INR",
-  "description": "ATM withdrawal"
-}
-
-## ✔ 4. Transfer
+✔ 4. Transfer
 
 POST /transfers
 
-{
-  "sourceAccountId": "A_ID",
-  "destinationAccountId": "B_ID",
-  "amount": 300,
-  "currency": "INR",
-  "description": "Bill payment"
-}
-
-## ✔ 5. Get Account Balance
+✔ 5. Get Account Details
 
 GET /accounts/<ACCOUNT_ID>
 
-## ✔ 6. Get Ledger
+✔ 6. Get Account Ledger
 
 GET /accounts/<ACCOUNT_ID>/ledger
 
-# 🛡️ Ledger Immutability Test
-
-Try:
-
+🛡️ Ledger Immutability Test
 UPDATE ledger_entries SET amount = 999 WHERE amount = 1000;
 
 
 Expected:
 
 ERROR: Ledger entries are immutable
+
+🧠 Design Decisions
+✔ Double-Entry Implementation
+
+Every transaction creates:
+
+One debit ledger entry
+
+One credit ledger entry
+
+Ledger entries reference the transactions table for full traceability.
+
+✔ Ensuring ACID Properties
+
+Atomicity: All inserts happen inside a single SQL transaction.
+
+Consistency: Schema constraints + checks prevent invalid data.
+
+Isolation: FOR UPDATE locking prevents concurrent double spending.
+
+Durability: PostgreSQL writes to disk WAL logs.
+
+✔ Transaction Isolation Level
+
+Recommended level: SERIALIZABLE
+
+Prevents:
+
+Lost updates
+
+Double withdrawals
+
+Race conditions
+
+Ensures banking-grade consistency.
+
+✔ Balance Calculation
+
+Balance = (credits sum) – (debits sum)
+No balance column exists → prevents corruption.
+
+✔ Preventing Negative Balances
+
+During withdrawal/transfer:
+
+Lock account row (FOR UPDATE)
+
+Compute balance
+
+If balance < amount → abort transaction
+
+Ensures no overdrafts.
+
+🏛️ Architecture Diagram
+Client
+   ↓
+Routes (Express)
+   ↓
+Services (Business Logic)
+   ↓
+Database (accounts, transactions, ledger_entries)
+   ↓
+Ledger Trigger (immutability)
+
+🗄️ ERD (Database Schema Diagram)
+accounts (1) ────< transactions >──── (1) accounts
+       │                         │
+       │                         │
+       └──────< ledger_entries >──────┘
+
+
+Tables:
+
+accounts
+
+transactions
+
+ledger_entries
+
+Relationships:
+
+transactions → accounts (source_account_id)
+
+transactions → accounts (destination_account_id)
+
+ledger_entries → accounts
+
+ledger_entries → transactions
