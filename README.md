@@ -94,8 +94,8 @@ financial-ledger-api/
 
 ⚙️ Running the Project (Docker Recommended)
 ✅ 1. Clone the repository
-git clone https://github.com/<username>/financial-ledger-api.git
-cd financial-ledger-api
+git clone https://github.com/sivanandu-03/financial-ledger-api-23P31A05C0
+cd financial-ledger-api-23P31A05C0
 
 ✅ 2. Create .env
 cp .env.example .env
